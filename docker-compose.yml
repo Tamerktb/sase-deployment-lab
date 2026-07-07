@@ -1,0 +1,98 @@
+version: "3.8"
+
+services:
+  # Simulated Site-A services
+  site-a-web:
+    image: nginx:alpine
+    container_name: sase-site-a-web
+    networks:
+      sase_mesh:
+        ipv4_address: 10.0.1.10
+    volumes:
+      - ./demo/scenario-1-basic-access.md:/usr/share/nginx/html/scenario-1.html:ro
+    labels:
+      sase.site: "site-a"
+      sase.location: "Amman, Jordan"
+
+  site-a-api:
+    image: python:3.12-alpine
+    container_name: sase-site-a-api
+    networks:
+      sase_mesh:
+        ipv4_address: 10.0.1.20
+    command: >
+      sh -c "python -m http.server 8080 & sleep infinity"
+    labels:
+      sase.site: "site-a"
+
+  # Simulated Site-B services
+  site-b-web:
+    image: nginx:alpine
+    container_name: sase-site-b-web
+    networks:
+      sase_mesh:
+        ipv4_address: 10.0.2.10
+    labels:
+      sase.site: "site-b"
+      sase.location: "Dubai, UAE"
+
+  site-b-db:
+    image: postgres:16-alpine
+    container_name: sase-site-b-db
+    networks:
+      sase_mesh:
+        ipv4_address: 10.0.2.20
+    environment:
+      POSTGRES_USER: sase
+      POSTGRES_PASSWORD: sase_demo_pass
+      POSTGRES_DB: sase_demo
+
+  # Hub monitoring
+  hub-monitor:
+    image: nginx:alpine
+    container_name: sase-hub-monitor
+    networks:
+      sase_mesh:
+        ipv4_address: 10.0.0.10
+    ports:
+      - "9090:80"
+    labels:
+      sase.site: "hub"
+      sase.location: "AWS eu-central-1"
+
+  # WireGuard Hub (simulated)
+  wireguard-hub:
+    image: linuxserver/wireguard:latest
+    container_name: sase-wg-hub
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv4.ip_forward=1
+    networks:
+      sase_mesh:
+        ipv4_address: 10.0.0.1
+    ports:
+      - "51820:51820/udp"
+    volumes:
+      - ./wireguard/sites/hub:/config:ro
+
+  # WARP Gateway simulator (posture check endpoint)
+  posture-gateway:
+    image: nginx:alpine
+    container_name: sase-posture-gateway
+    networks:
+      sase_mesh:
+        ipv4_address: 10.0.0.254
+    ports:
+      - "8443:443"
+    labels:
+      sase.role: "posture-gateway"
+
+networks:
+  sase_mesh:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "10.0.0.0/16"
