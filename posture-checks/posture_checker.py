@@ -150,7 +150,54 @@ class PostureChecker:
         return "\n".join(lines)
 
 
+def serve_metrics():
+    """Serve Prometheus metrics endpoint with posture check results."""
+    try:
+        from http.server import HTTPServer, BaseHTTPRequestHandler
+    except ImportError:
+        print("http.server not available. Install Python standard library.")
+        sys.exit(1)
+
+    PORT = 8000
+
+    class MetricsHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == "/metrics":
+                checker = PostureChecker()
+                checker.run_all()
+                lines = [
+                    "# HELP sase_posture_overall Device compliance status (1=compliant, 0=non-compliant)",
+                    "# TYPE sase_posture_overall gauge",
+                    f'sase_posture_overall{ {"os": checker.results["os"], "hostname": checker.results["hostname"]} } {1 if checker.compliant() else 0}',
+                ]
+                for c in checker.results["checks"]:
+                    name = c["name"].lower()
+                    lines.append(f"# HELP sase_posture_check_{name} {c['name']} check result (1=pass, 0=fail)")
+                    lines.append(f"# TYPE sase_posture_check_{name} gauge")
+                    lines.append(f'sase_posture_check_{name}{{"os": "{checker.results["os"]}"}} {1 if c["passed"] else 0}')
+                self.send_response(200)
+                self.send_header("Content-Type", "text/plain")
+                self.end_headers()
+                self.wfile.write("\n".join(lines).encode())
+            else:
+                self.send_response(404)
+                self.end_headers()
+
+    print(f"SASE Posture Metrics exposed at http://0.0.0.0:{PORT}/metrics")
+    print("Configure Prometheus to scrape this endpoint.")
+    server = HTTPServer(("0.0.0.0", PORT), MetricsHandler)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nShutting down metrics server.")
+        server.server_close()
+
+
 def main():
+    if "--prometheus" in sys.argv:
+        serve_metrics()
+        return
+
     checker = PostureChecker()
     checker.run_all()
 

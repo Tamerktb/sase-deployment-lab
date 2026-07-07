@@ -1,0 +1,75 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "title": "SASE Deployment — Device Posture Overview",
+  "uid": "sase-overview-1",
+  "version": 1,
+  "panels": [
+    {
+      "title": "Overall Compliance Status",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sase_posture_overall",
+          "legendFormat": "{{ hostname }}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": -1, "color": "red" },
+              { "value": 0, "color": "red" },
+              { "value": 1, "color": "green" }
+            ]
+          },
+          "mappings": [
+            { "type": "value", "value": "1", "text": "COMPLIANT" },
+            { "type": "value", "value": "0", "text": "NON-COMPLIANT" }
+          ]
+        }
+      }
+    },
+    {
+      "title": "Individual Check Results",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sase_posture_check_firewall",
+          "legendFormat": "Firewall"
+        },
+        {
+          "expr": "sase_posture_check_antivirus",
+          "legendFormat": "Antivirus"
+        },
+        {
+          "expr": "sase_posture_check_diskencryption",
+          "legendFormat": "Disk Encryption"
+        },
+        {
+          "expr": "sase_posture_check_ospatches",
+          "legendFormat": "OS Patches"
+        },
+        {
+          "expr": "sase_posture_check_cloudflarewarp",
+          "legendFormat": "WARP Client"
+        }
+      ]
+    },
+    {
+      "title": "Compliance History (last hour)",
+      "type": "graph",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "avg_over_time(sase_posture_overall[5m])",
+          "legendFormat": "Compliance rate"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 38
+}

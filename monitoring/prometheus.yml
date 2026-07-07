@@ -1,0 +1,18 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "sase-posture-checks"
+    scrape_interval: 30s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["posture-gateway:8000"]
+        labels:
+          sase_role: "posture"
+  - job_name: "sase-docker"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["localhost:9323"]
+        labels:
+          sase_role: "infrastructure"

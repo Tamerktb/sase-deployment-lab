@@ -57,3 +57,9 @@ variable "posture_integration_name" {
   type        = string
   default     = "SASE-Device-Posture"
 }
+
+variable "gateway_proxy_ips" {
+  description = "Routable IPs for the Gateway proxy endpoint (leave empty to skip). Must be real IPs your org owns."
+  type        = list(string)
+  default     = []
+}

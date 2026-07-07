@@ -46,8 +46,11 @@ resource "cloudflare_zero_trust_gateway_policy" "corporate_routing" {
   traffic = "dst.ip in { 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 }"
 }
 
+# Proxy endpoint for Gateway. Disabled by default — set gateway_proxy_ips to activate.
+# Must use real, routable IPs owned by your organization (not TEST-NET / documentation ranges).
 resource "cloudflare_zero_trust_gateway_proxy_endpoint" "sase_proxy" {
+  count      = length(var.gateway_proxy_ips) > 0 ? 1 : 0
   account_id = local.account_id
   name       = "SASE-Gateway-Proxy"
-  ips        = ["203.0.113.10", "198.51.100.10"]
+  ips        = var.gateway_proxy_ips
 }

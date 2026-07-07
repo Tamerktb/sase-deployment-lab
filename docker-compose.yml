@@ -155,23 +155,66 @@ services:
     volumes:
       - ./wireguard/sites/hub:/config:ro
 
+  # ── Monitoring Stack (Prometheus + Grafana) ─────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: sase-prometheus
+    networks:
+      sase_mesh: {}
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    labels:
+      sase.role: "monitoring"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: sase-grafana
+    networks:
+      sase_mesh: {}
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - ./monitoring/grafana-dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana-datasources:/etc/grafana/provisioning/datasources:ro
+      - grafana-data:/var/lib/grafana
+    labels:
+      sase.role: "monitoring"
+    depends_on:
+      prometheus:
+        condition: service_started
+
   # ── Posture & Compliance Gateway ────────────────────────────
   posture-gateway:
     <<: *sase-common
-    image: nginx:alpine
+    image: python:3.12-alpine
     container_name: sase-posture-gateway
     networks:
       sase_mesh:
         ipv4_address: 10.0.0.254
     ports:
-      - "8443:443"
+      - "8000:8000"
+    command: >
+      sh -c "pip install prometheus_client -q && python /app/posture_checker.py --prometheus"
+    volumes:
+      - ./posture-checks/posture_checker.py:/app/posture_checker.py:ro
     labels:
       sase.role: "posture-gateway"
+      sase.metrics: "/metrics"
     healthcheck:
-      test: ["CMD", "nginx", "-t"]
-      interval: 10s
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/metrics')"]
+      interval: 15s
       timeout: 5s
       retries: 3
+
+volumes:
+  prometheus-data:
+  grafana-data:
 
 networks:
   sase_mesh:

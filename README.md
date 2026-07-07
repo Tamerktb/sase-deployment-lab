@@ -52,6 +52,10 @@ sase-deployment-lab/
 │   ├── posture_checker.py  # Cross-platform checker
 │   ├── windows-posture.ps1 # Windows-specific checks
 │   └── linux-posture.sh    # Linux-specific checks
+├── monitoring/             # Prometheus + Grafana dashboards
+│   ├── prometheus.yml
+│   ├── grafana-datasources/
+│   └── grafana-dashboards/
 ├── split-tunneling/        # Split-tunnel configurations
 │   ├── cloudflare-split-tunnel.json
 │   └── wireguard-split-tunnel.conf
@@ -61,6 +65,7 @@ sase-deployment-lab/
 │   └── scenario-3-split-tunnel.md
 ├── scripts/                # Deployment automation
 │   ├── deploy.sh
+│   ├── deploy-vps.sh
 │   ├── teardown.sh
 │   ├── verify.sh
 │   ├── key-exchange.py
@@ -134,7 +139,31 @@ powershell -ExecutionPolicy Bypass -File posture-checks/windows-posture.ps1
 bash posture-checks/linux-posture.sh
 ```
 
-### 5. Test WireGuard Site-to-Site Mesh
+### 5. Monitoring Dashboard
+
+```bash
+# Start Prometheus + Grafana
+make run   # already includes prometheus + grafana
+
+# Expose posture metrics in a separate terminal
+make monitor
+# → http://localhost:8000/metrics
+
+# Open Grafana
+# → http://localhost:3000 (anonymous access enabled)
+```
+
+### 6. Quick Tunnel Demo (No Cloudflare Account Needed)
+
+Creates a public URL to your Hub Monitor in 10 seconds:
+
+```bash
+make demo-tunnel
+# → cloudflared outputs a URL like: https://piece-turtle-crown.trycloudflare.com
+# Open that URL in any browser — it tunnels to your local hub-monitor
+```
+
+### 7. Test WireGuard Site-to-Site Mesh
 
 ```bash
 # Apply WireGuard config on the hub
@@ -151,7 +180,8 @@ ping 10.0.2.1  # Site-B from Hub
 |----------|-------------|------|
 | **1 - Basic Access** | User authenticates via SSO and accesses internal apps | 10 min |
 | **2 - Posture Check** | Non-compliant device is blocked; compliant device passes | 15 min |
-| **3 - Split-Tunnel** | Multi-site inter-site traffic + internet bypass verification | 15 min |
+| **3 - Quick Tunnel** | Public URL to Hub Monitor via cloudflared (no account needed) | 2 min |
+| **4 - Monitoring** | Prometheus metrics + Grafana dashboard for posture data | 5 min |
 
 ## Security Considerations
 
