@@ -8,14 +8,10 @@ resource "cloudflare_zero_trust_gateway_policy" "dns_filtering" {
 
   rule_settings {
     block_page_enabled = true
-    block_reason       = "SASE Policy: This domain is blocked for security reasons."
+    block_page_reason  = "SASE Policy: This domain is blocked for security reasons."
   }
 
-  rule_settings {
-    insecure_operations = false
-  }
-
-  traffic_expression = "dns.fqdn matches \".*.(xyz|top|gq|ml|cf|ga|tk|download|bid|date)\""
+  traffic = "dns.fqdn matches \".*.(xyz|top|gq|ml|cf|ga|tk|download|bid|date)\""
 }
 
 resource "cloudflare_zero_trust_gateway_policy" "http_filtering" {
@@ -28,10 +24,10 @@ resource "cloudflare_zero_trust_gateway_policy" "http_filtering" {
 
   rule_settings {
     block_page_enabled = true
-    block_reason       = "SASE Policy: Content blocked by security policy."
+    block_page_reason  = "SASE Policy: Content blocked by security policy."
   }
 
-  traffic_expression = "http.request.uri contains \"torrent\" OR http.request.uri contains \"proxy\""
+  traffic = "http.request.uri contains \"torrent\" OR http.request.uri contains \"proxy\""
 }
 
 resource "cloudflare_zero_trust_gateway_policy" "split_tunnel" {
@@ -42,7 +38,7 @@ resource "cloudflare_zero_trust_gateway_policy" "split_tunnel" {
   action      = "allow"
   filters     = ["dns", "http"]
 
-  traffic_expression = "dst.ip in { 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 }"
+  traffic = "dst.ip in { 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 }"
 }
 
 resource "cloudflare_zero_trust_gateway_proxy_endpoint" "sase_proxy" {

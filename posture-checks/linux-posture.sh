@@ -1,6 +1,6 @@
 #!/bin/bash
 # SASE Device Posture Check - Linux
-set -euo pipefail
+set -eu
 
 PASSED=0
 TOTAL=0

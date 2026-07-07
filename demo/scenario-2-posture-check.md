@@ -23,7 +23,7 @@ powershell -ExecutionPolicy Bypass -File posture-checks/windows-posture.ps1
 bash posture-checks/linux-posture.sh
 
 # Cross-platform Python
-python posture-checks/posture-checker.py --json
+python posture-checks/posture_checker.py --json
 ```
 
 ### 2. Intentionally Fail a Check

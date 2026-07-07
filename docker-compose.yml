@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   # Simulated Site-A services
   site-a-web:
@@ -13,6 +11,11 @@ services:
     labels:
       sase.site: "site-a"
       sase.location: "Amman, Jordan"
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   site-a-api:
     image: python:3.12-alpine
@@ -35,6 +38,11 @@ services:
     labels:
       sase.site: "site-b"
       sase.location: "Dubai, UAE"
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   site-b-db:
     image: postgres:16-alpine
@@ -46,6 +54,11 @@ services:
       POSTGRES_USER: sase
       POSTGRES_PASSWORD: sase_demo_pass
       POSTGRES_DB: sase_demo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sase -d sase_demo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Hub monitoring
   hub-monitor:
@@ -59,6 +72,11 @@ services:
     labels:
       sase.site: "hub"
       sase.location: "AWS eu-central-1"
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   # WireGuard Hub (simulated)
   wireguard-hub:
@@ -89,6 +107,11 @@ services:
       - "8443:443"
     labels:
       sase.role: "posture-gateway"
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 networks:
   sase_mesh:

@@ -39,20 +39,21 @@ class PostureChecker:
         }
 
     def check_firewall(self):
-        if platform.system() == "Windows":
+        os_name = self.results["os"]
+        if os_name == "Windows":
             r = subprocess.run(
                 ["netsh", "advfirewall", "show", "allprofiles", "state"],
                 capture_output=True, text=True, timeout=10,
             )
             enabled = "ON" in r.stdout.upper()
             return self._check("Firewall", enabled, r.stdout.strip()[:200])
-        elif platform.system() == "Linux":
+        elif os_name == "Linux":
             r = subprocess.run(
                 ["ufw", "status"], capture_output=True, text=True, timeout=10
             )
-            enabled = "active" in r.stdout.lower()
+            enabled = "active" in r.stdout.lower() and "inactive" not in r.stdout.lower()
             return self._check("Firewall", enabled, r.stdout.strip()[:200])
-        elif platform.system() == "Darwin":
+        elif os_name == "Darwin":
             r = subprocess.run(
                 ["/usr/libexec/ApplicationFirewall/socketfilterfw", "--getglobalstate"],
                 capture_output=True, text=True, timeout=10,
@@ -61,7 +62,7 @@ class PostureChecker:
             return self._check("Firewall", enabled, r.stdout.strip()[:200])
 
     def check_antivirus(self):
-        if platform.system() == "Windows":
+        if self.results["os"] == "Windows":
             r = subprocess.run(
                 ["powershell", "-Command",
                  "Get-MpComputerStatus | Select-Object -Property AntivirusEnabled, RealTimeProtectionEnabled"],
@@ -72,7 +73,8 @@ class PostureChecker:
         return self._check("Antivirus", True, "Platform does not require AV check")
 
     def check_disk_encryption(self):
-        if platform.system() == "Windows":
+        os_name = self.results["os"]
+        if os_name == "Windows":
             r = subprocess.run(
                 ["powershell", "-Command",
                  "Get-BitLockerVolume -MountPoint C: | Select-Object -ExpandProperty ProtectionStatus"],
@@ -80,7 +82,7 @@ class PostureChecker:
             )
             passed = "On" in r.stdout
             return self._check("DiskEncryption", passed, r.stdout.strip()[:200])
-        elif platform.system() == "Linux":
+        elif os_name == "Linux":
             r = subprocess.run(
                 ["lsblk", "-o", "NAME,TYPE,FSTYPE,MOUNTPOINT"],
                 capture_output=True, text=True, timeout=10,
@@ -90,7 +92,7 @@ class PostureChecker:
         return self._check("DiskEncryption", True, "Encryption check not implemented for this OS")
 
     def check_os_patches(self):
-        if platform.system() == "Windows":
+        if self.results["os"] == "Windows":
             r = subprocess.run(
                 ["powershell", "-Command",
                  "Get-HotFix | Select-Object -Last 1 | Format-Table -AutoSize"],
@@ -101,8 +103,9 @@ class PostureChecker:
         return self._check("OSPatches", True, "Patch check not implemented for this OS")
 
     def check_cloudflare_warp(self):
-        warp_cli = "warp-cli" if platform.system() != "Windows" else "warp-cli.exe"
-        if platform.system() == "Windows":
+        is_windows = self.results["os"] == "Windows"
+        warp_cli = "warp-cli" if not is_windows else "warp-cli.exe"
+        if is_windows:
             try:
                 r = subprocess.run(
                     [warp_cli, "status"], capture_output=True, text=True, timeout=10

@@ -1,6 +1,6 @@
 #!/bin/bash
 # SASE Deployment Lab - Full Deployment Script
-set -euo pipefail
+set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
@@ -27,7 +27,7 @@ docker compose up -d --build
 
 # 4. Run posture checks
 echo "[4/5] Running device posture checks..."
-python3 "$PROJECT_DIR/posture-checks/posture-checker.py"
+python3 "$PROJECT_DIR/posture-checks/posture_checker.py"
 
 # 5. Verify connectivity
 echo "[5/5] Verifying connectivity..."

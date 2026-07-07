@@ -37,7 +37,7 @@ sase-deployment-lab/
 │       ├── site-a/         # Site-A (Amman, Jordan)
 │       └── site-b/         # Site-B (Dubai, UAE)
 ├── posture-checks/         # Device compliance verification
-│   ├── posture-checker.py  # Cross-platform checker
+│   ├── posture_checker.py  # Cross-platform checker
 │   ├── windows-posture.ps1 # Windows-specific checks
 │   └── linux-posture.sh    # Linux-specific checks
 ├── split-tunneling/        # Split-tunnel configurations
@@ -95,7 +95,7 @@ terraform apply -auto-approve
 
 ```bash
 # Cross-platform
-python3 posture-checks/posture-checker.py --json
+python3 posture-checks/posture_checker.py --json
 
 # Windows (as Administrator)
 powershell -ExecutionPolicy Bypass -File posture-checks/windows-posture.ps1
@@ -128,6 +128,59 @@ tcpdump -i wg-split -n
 - The posture checker does **not** store or transmit any sensitive data — results are printed to stdout
 - Terraform state files contain API tokens — add `terraform.tfstate` to `.gitignore` (already configured)
 - For production deployments, enable Cloudflare Gateway logs and set up alerting
+
+## Project Walkthrough (for Interviews)
+
+### Elevator Pitch (30 seconds)
+
+> "I built a simulated SASE deployment that connects three sites — Amman, Dubai, and AWS — into an encrypted mesh using WireGuard, enforces device posture (firewall, AV, disk encryption) before granting access via Cloudflare Zero Trust, and implements split-tunneling so only corporate traffic hits the VPN. The entire deployment is Infrastructure as Code with Terraform and Docker."
+
+### Deep Dive (2-3 minutes)
+
+1. **The Problem**: Organizations with distributed sites struggle with complex VPN meshes and inconsistent security policies. SASE converges networking and security into a cloud-delivered model, but deploying it is non-trivial.
+
+2. **My Approach**: Build a reproducible lab that demonstrates the full SASE stack:
+   - **Cloudflare Zero Trust** as the identity/security layer (Access policies, Gateway filtering)
+   - **WireGuard** as the encrypted mesh fabric (hub-and-spoke topology)
+   - **Device Posture Checks** for zero-trust device compliance
+   - **Split-Tunneling** to optimize traffic routing
+
+3. **Key Design Decisions**:
+   - WireGuard over IPSec/OpenVPN for simplicity (4k LOC vs 100k+), modern crypto (Noise protocol), kernel integration
+   - Terraform for Cloudflare configs — Infrastructure as Code means policies are version-controlled and auditable
+   - Multi-platform posture checks (Python + PowerShell + Bash) because real enterprises are heterogeneous
+   - Docker Compose for the local simulation — lets anyone reproduce the topology without Cloudflare credits
+
+4. **Trade-offs Made**:
+   - Static WireGuard keys vs. a full PKI — acceptable for a lab, but production would use cert-based auth with rotation
+   - Simulated Docker networking for inter-site connectivity — the WireGuard mesh configs are real, but the Docker overlay network handles routing locally
+   - No persistent state for posture checks (results to stdout only) — intentional for privacy, but production would need a SIEM feed
+
+### What Went Wrong (Failure Story)
+
+The first version of the WireGuard mesh used dynamic routing (BIRD/BGP) on top of WireGuard, which was overly complex for a 3-site topology. Routes kept flapping during key rotation tests. I simplified to a static hub-and-spoke with `AllowedIPs` routing — it's less flexible but rock-solid and the configs are trivially debuggable. This taught me to match complexity to the actual problem, not the coolest technology.
+
+### What I'd Improve Next
+
+- **cert-based WireGuard**: Replace static keys with a CA-signed certificate system with automatic rotation
+- **Observability**: Add Prometheus metrics from the posture checker + Grafana dashboard for real-time compliance visibility
+- **GitOps CI/CD**: Auto-deploy Terraform on merge to main using GitHub Actions with a sandbox Cloudflare account
+- **Threat simulation**: Integrate with Caldera or Atomic Red Team to simulate attacks and verify Gateway policies block them
+
+## Tech Stack
+
+| Technology | Role | Why |
+|---|---|---|
+| **WireGuard** | Site-to-site encrypted mesh | Minimal attack surface, built into Linux kernel, modern crypto |
+| **Cloudflare Zero Trust** | Identity-based access, Gateway DNS/HTTP filtering | Free tier for labs, rich API for Terraform, WARP client for posture |
+| **Terraform** | Infrastructure as Code | Cloudflare provider is mature, HCL is declarative, team-friendly |
+| **Docker Compose** | Local simulation | Zero-config multi-site topology, containers map to real services |
+| **Python** | Posture checker, diagram generator, config generation | Cross-platform, rich stdlib, testable with pytest |
+| **GitHub Actions** | CI/CD | Free for public repos, runs tests + Docker build + Terraform validate |
+
+## Demo
+
+Architecture diagram generated with [Diagrams](https://diagrams.mingrammer.com/) — run `make diagram` to regenerate.
 
 ## License
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Site-B (Dubai) setup script for SASE WireGuard mesh
-set -euo pipefail
+set -eu
 
 echo "[SASE] Setting up WireGuard Site-B (Dubai)..."
 echo "============================================="

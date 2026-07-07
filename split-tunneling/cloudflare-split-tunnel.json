@@ -1,6 +1,6 @@
 {
   "description": "Cloudflare Zero Trust Split Tunnel Configuration for SASE",
-  "version": "1.0",
+  "version": "1.1",
   "mode": "selective",
   "policy": {
     "include_corporate": {
@@ -32,19 +32,8 @@
       "services": ["*.sase.example.com"]
     }
   },
-  "bypass_rules": {
-    "description": "Traffic that must NOT go through the tunnel",
-    "subnets": [
-      "10.0.0.0/8"
-    ],
-    "domains": [
-      "*.local",
-      "*.lan"
-    ]
-  },
   "instructions": {
     "cloudflare_dashboard": "Go to Zero Trust > Settings > Network > Split Tunnels > Select 'Exclude' mode and add bypass subnets",
-    "warp_cli": "warp-cli set-custom-endpoint <gateway-ip>
-warp-cli connect"
+    "warp_cli": "warp-cli set-custom-endpoint <gateway-ip>\nwarp-cli connect"
   }
 }

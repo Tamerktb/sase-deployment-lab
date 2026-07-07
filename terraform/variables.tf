@@ -17,9 +17,9 @@ variable "domain" {
 variable "sites" {
   description = "Multi-site definitions for the SASE deployment"
   type = map(object({
-    cidr       = string
-    peer_ips   = list(string)
-    location   = string
+    cidr     = string
+    peer_ips = list(string)
+    location = string
   }))
   default = {
     "site-a" = {
