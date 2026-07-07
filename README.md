@@ -1,5 +1,7 @@
 # SASE Deployment Lab
 
+[![CI](https://github.com/Tamerktb/sase-deployment-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/Tamerktb/sase-deployment-lab/actions/workflows/ci.yml)
+
 A simulated **Secure Access Service Edge (SASE)** deployment combining **Cloudflare Zero Trust** with **WireGuard** for a multi-site mesh network. Implements identity-based access policies, device posture checks, and split-tunneling across three simulated sites.
 
 ## Architecture

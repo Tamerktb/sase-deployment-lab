@@ -14,12 +14,13 @@ import datetime
 
 
 class PostureChecker:
-    def __init__(self):
+    def __init__(self, os_name=None):
+        actual_os = os_name or platform.system()
         self.results = {
             "device_id": self._get_device_id(),
             "timestamp": datetime.datetime.now(datetime.UTC).isoformat() + "Z",
-            "os": platform.system(),
-            "os_version": platform.version(),
+            "os": actual_os,
+            "os_version": platform.version() if not os_name else "",
             "hostname": platform.node(),
             "checks": [],
             "overall_status": "unknown",
@@ -40,81 +41,90 @@ class PostureChecker:
 
     def check_firewall(self):
         os_name = self.results["os"]
-        if os_name == "Windows":
-            r = subprocess.run(
-                ["netsh", "advfirewall", "show", "allprofiles", "state"],
-                capture_output=True, text=True, timeout=10,
-            )
-            enabled = "ON" in r.stdout.upper()
-            return self._check("Firewall", enabled, r.stdout.strip()[:200])
-        elif os_name == "Linux":
-            r = subprocess.run(
-                ["ufw", "status"], capture_output=True, text=True, timeout=10
-            )
-            enabled = "active" in r.stdout.lower() and "inactive" not in r.stdout.lower()
-            return self._check("Firewall", enabled, r.stdout.strip()[:200])
-        elif os_name == "Darwin":
-            r = subprocess.run(
-                ["/usr/libexec/ApplicationFirewall/socketfilterfw", "--getglobalstate"],
-                capture_output=True, text=True, timeout=10,
-            )
-            enabled = "enabled" in r.stdout.lower()
-            return self._check("Firewall", enabled, r.stdout.strip()[:200])
+        try:
+            if os_name == "Windows":
+                r = subprocess.run(
+                    ["netsh", "advfirewall", "show", "allprofiles", "state"],
+                    capture_output=True, text=True, timeout=10,
+                )
+                enabled = "ON" in r.stdout.upper()
+                return self._check("Firewall", enabled, r.stdout.strip()[:200])
+            elif os_name == "Linux":
+                r = subprocess.run(
+                    ["ufw", "status"], capture_output=True, text=True, timeout=10
+                )
+                enabled = "active" in r.stdout.lower() and "inactive" not in r.stdout.lower()
+                return self._check("Firewall", enabled, r.stdout.strip()[:200])
+            elif os_name == "Darwin":
+                r = subprocess.run(
+                    ["/usr/libexec/ApplicationFirewall/socketfilterfw", "--getglobalstate"],
+                    capture_output=True, text=True, timeout=10,
+                )
+                enabled = "enabled" in r.stdout.lower()
+                return self._check("Firewall", enabled, r.stdout.strip()[:200])
+        except (subprocess.SubprocessError, FileNotFoundError, OSError) as e:
+            return self._check("Firewall", False, f"Check failed: {e}")
 
     def check_antivirus(self):
         if self.results["os"] == "Windows":
-            r = subprocess.run(
-                ["powershell", "-Command",
-                 "Get-MpComputerStatus | Select-Object -Property AntivirusEnabled, RealTimeProtectionEnabled"],
-                capture_output=True, text=True, timeout=30,
-            )
-            passed = "True" in r.stdout
-            return self._check("Antivirus", passed, r.stdout.strip()[:200])
+            try:
+                r = subprocess.run(
+                    ["powershell", "-Command",
+                     "Get-MpComputerStatus | Select-Object -Property AntivirusEnabled, RealTimeProtectionEnabled"],
+                    capture_output=True, text=True, timeout=30,
+                )
+                passed = "True" in r.stdout
+                return self._check("Antivirus", passed, r.stdout.strip()[:200])
+            except (subprocess.SubprocessError, OSError) as e:
+                return self._check("Antivirus", False, f"Check failed: {e}")
         return self._check("Antivirus", True, "Platform does not require AV check")
 
     def check_disk_encryption(self):
         os_name = self.results["os"]
-        if os_name == "Windows":
-            r = subprocess.run(
-                ["powershell", "-Command",
-                 "Get-BitLockerVolume -MountPoint C: | Select-Object -ExpandProperty ProtectionStatus"],
-                capture_output=True, text=True, timeout=30,
-            )
-            passed = "On" in r.stdout
-            return self._check("DiskEncryption", passed, r.stdout.strip()[:200])
-        elif os_name == "Linux":
-            r = subprocess.run(
-                ["lsblk", "-o", "NAME,TYPE,FSTYPE,MOUNTPOINT"],
-                capture_output=True, text=True, timeout=10,
-            )
-            passed = "crypto_LUKS" in r.stdout
-            return self._check("DiskEncryption", passed, r.stdout.strip()[:200])
+        try:
+            if os_name == "Windows":
+                r = subprocess.run(
+                    ["powershell", "-Command",
+                     "Get-BitLockerVolume -MountPoint C: | Select-Object -ExpandProperty ProtectionStatus"],
+                    capture_output=True, text=True, timeout=30,
+                )
+                passed = "On" in r.stdout
+                return self._check("DiskEncryption", passed, r.stdout.strip()[:200])
+            elif os_name == "Linux":
+                r = subprocess.run(
+                    ["lsblk", "-o", "NAME,TYPE,FSTYPE,MOUNTPOINT"],
+                    capture_output=True, text=True, timeout=10,
+                )
+                passed = "crypto_LUKS" in r.stdout
+                return self._check("DiskEncryption", passed, r.stdout.strip()[:200])
+        except (subprocess.SubprocessError, OSError) as e:
+            return self._check("DiskEncryption", False, f"Check failed: {e}")
         return self._check("DiskEncryption", True, "Encryption check not implemented for this OS")
 
     def check_os_patches(self):
         if self.results["os"] == "Windows":
-            r = subprocess.run(
-                ["powershell", "-Command",
-                 "Get-HotFix | Select-Object -Last 1 | Format-Table -AutoSize"],
-                capture_output=True, text=True, timeout=30,
-            )
-            passed = len(r.stdout.strip()) > 0
-            return self._check("OSPatches", passed, "Last patch: " + r.stdout.strip()[:100])
+            try:
+                r = subprocess.run(
+                    ["powershell", "-Command",
+                     "Get-HotFix | Select-Object -Last 1 | Format-Table -AutoSize"],
+                    capture_output=True, text=True, timeout=30,
+                )
+                passed = len(r.stdout.strip()) > 0
+                return self._check("OSPatches", passed, "Last patch: " + r.stdout.strip()[:100])
+            except (subprocess.SubprocessError, OSError) as e:
+                return self._check("OSPatches", False, f"Check failed: {e}")
         return self._check("OSPatches", True, "Patch check not implemented for this OS")
 
     def check_cloudflare_warp(self):
-        is_windows = self.results["os"] == "Windows"
-        warp_cli = "warp-cli" if not is_windows else "warp-cli.exe"
-        if is_windows:
-            try:
-                r = subprocess.run(
-                    [warp_cli, "status"], capture_output=True, text=True, timeout=10
-                )
-                connected = "Connected" in r.stdout
-                return self._check("CloudflareWARP", connected, r.stdout.strip()[:200])
-            except FileNotFoundError:
-                return self._check("CloudflareWARP", False, "WARP CLI not found - install Cloudflare WARP client")
-        return self._check("CloudflareWARP", False, "WARP CLI not available on this platform")
+        warp_cli = "warp-cli.exe" if self.results["os"] == "Windows" else "warp-cli"
+        try:
+            r = subprocess.run(
+                [warp_cli, "status"], capture_output=True, text=True, timeout=10
+            )
+            connected = "Connected" in r.stdout
+            return self._check("CloudflareWARP", connected, r.stdout.strip()[:200])
+        except FileNotFoundError:
+            return self._check("CloudflareWARP", False, f"{warp_cli} not found - install Cloudflare WARP client")
 
     def run_all(self):
         self.results["checks"] = [

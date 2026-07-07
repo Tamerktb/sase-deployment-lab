@@ -93,7 +93,7 @@ def test_end_to_end_compliant_device(mock_run):
         MagicMock(stdout="Security Update KB123456", returncode=0),
         MagicMock(stdout="Connected: true", returncode=0),
     ]
-    c = PostureChecker()
+    c = PostureChecker(os_name="Windows")
     c.run_all()
     assert c.compliant() is True
     assert c.results["overall_status"] == "compliant"
@@ -109,7 +109,7 @@ def test_end_to_end_non_compliant_device(mock_run):
         MagicMock(stdout="Security Update KB123456", returncode=0),
         FileNotFoundError(),  # WARP CLI not found
     ]
-    c = PostureChecker()
+    c = PostureChecker(os_name="Windows")
     c.run_all()
     assert c.compliant() is False
     assert c.results["overall_status"] == "non_compliant"
