@@ -51,3 +51,9 @@ variable "posture_checks" {
   type        = bool
   default     = true
 }
+
+variable "posture_integration_name" {
+  description = "Name of the Cloudflare Device Posture integration (created manually in dashboard)"
+  type        = string
+  default     = "SASE-Device-Posture"
+}

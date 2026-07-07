@@ -14,8 +14,11 @@ resource "cloudflare_zero_trust_access_policy" "sase_policies" {
     email_domain = var.allowed_email_domains
   }
 
+  # Requires a Device Posture integration to exist in the Cloudflare account.
+  # Create it manually: Zero Trust > Settings > WARP Client > Device posture
+  # The integration name must match var.posture_integration_name.
   require {
-    device_posture = var.posture_checks ? ["device_posture"] : []
+    device_posture = var.posture_checks ? [var.posture_integration_name] : []
   }
 }
 

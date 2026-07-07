@@ -18,7 +18,7 @@ echo ""
 
 # 1. Docker containers
 echo "--- Docker Containers ---"
-for container in sase-site-a-web sase-site-a-api sase-site-b-web sase-site-b-db sase-hub-monitor sase-wg-hub sase-posture-gateway; do
+for container in sase-site-a-web sase-site-a-api sase-site-b-web sase-site-b-db sase-hub-monitor sase-wg-hub sase-posture-gateway sase-site-a-tunnel sase-site-b-tunnel sase-hub-tunnel; do
     if docker ps --format '{{.Names}}' | grep -q "^$container$"; then
         pass "$container is running"
     else

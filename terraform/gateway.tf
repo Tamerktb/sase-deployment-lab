@@ -30,10 +30,15 @@ resource "cloudflare_zero_trust_gateway_policy" "http_filtering" {
   traffic = "http.request.uri contains \"torrent\" OR http.request.uri contains \"proxy\""
 }
 
-resource "cloudflare_zero_trust_gateway_policy" "split_tunnel" {
+# Routes corporate traffic through Cloudflare Gateway for logging + filtering.
+# This is NOT split-tunneling — that is configured in the WARP client.
+# To enable split-tunneling in WARP:
+#   Zero Trust > Settings > WARP Client > Split Tunnels > "Exclude" mode
+#   Add public IP ranges to bypass, leave corp ranges (10.0.0.0/8 etc.) to route through Gateway.
+resource "cloudflare_zero_trust_gateway_policy" "corporate_routing" {
   account_id  = local.account_id
-  name        = "SASE-Split-Tunnel-Corp"
-  description = "Route corporate traffic through Gateway, bypass for non-corporate"
+  name        = "SASE-Corporate-Routing"
+  description = "Route corporate traffic through Gateway for DNS/HTTP inspection"
   precedence  = 3
   action      = "allow"
   filters     = ["dns", "http"]

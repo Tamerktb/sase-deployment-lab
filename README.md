@@ -8,14 +8,26 @@ A simulated **Secure Access Service Edge (SASE)** deployment combining **Cloudfl
 
 *Diagram generated with [Diagrams](https://diagrams.mingrammer.com/) — code in [`scripts/generate-architecture-diagram.py`](scripts/generate-architecture-diagram.py)*
 
+### Data Flow (two independent paths)
+
+| Path | Flow | Purpose |
+|------|------|---------|
+| **1. Remote Access** | User → WARP → Posture Check → Cloudflare Access → Cloudflare Tunnel → `cloudflared` sidecar → Service | Identity-based app access (Zero Trust) |
+| **2. Site-to-Site** | Site-A ← WireGuard → Hub ← WireGuard → Site-B | Encrypted inter-site connectivity |
+
+### Key Distinction
+- **Cloudflare Tunnel** provides remote user access to internal apps (replaces traditional VPN)
+- **WireGuard Mesh** connects sites to each other (independent of Cloudflare)
+- They are **not** chained — a user connecting to Site-A's web server does not pass through the WireGuard mesh
+
 ## Features
 
 | Feature | Implementation | Technology |
 |---------|---------------|------------|
 | **Identity-Based Access** | SSO + email domain policies for internal apps | Cloudflare Access (Terraform) |
 | **Device Posture Checks** | Firewall, AV, disk encryption, patch compliance | Python + PowerShell + Bash scripts |
-| **Split-Tunneling** | Corporate traffic via tunnel, internet direct | WireGuard + Cloudflare Gateway |
-| **Multi-Site Mesh** | Site-to-site encrypted connectivity | WireGuard hub-and-spoke |
+| **Cloudflare Tunnel** | Encrypted tunnel from Cloudflare edge to each site | `cloudflared` sidecar (Docker) |
+| **Multi-Site Mesh** | Site-to-site encrypted connectivity (independent of Cloudflare) | WireGuard hub-and-spoke |
 | **DNS/HTTP Filtering** | Block malware, phishing, high-risk categories | Cloudflare Gateway |
 | **Local Demo Environment** | Simulated 3-site network in containers | Docker Compose |
 
@@ -50,7 +62,9 @@ sase-deployment-lab/
 ├── scripts/                # Deployment automation
 │   ├── deploy.sh
 │   ├── teardown.sh
-│   └── verify.sh
+│   ├── verify.sh
+│   ├── key-exchange.py
+│   └── generate-architecture-diagram.py
 └── docker-compose.yml      # Local 3-site simulation
 ```
 
@@ -58,11 +72,11 @@ sase-deployment-lab/
 
 ### Prerequisites
 
-- [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.6
 - [Docker](https://docs.docker.com/get-docker/) + Docker Compose
-- [WireGuard](https://www.wireguard.com/install/) (for split-tunnel testing)
-- [Cloudflare WARP](https://developers.cloudflare.com/warp-client/) client (for posture checks)
-- Cloudflare API token with Zero Trust permissions
+- [Python](https://www.python.org/downloads/) >= 3.12 (for tests and scripts)
+- [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.6 (for Cloudflare deployment)
+- [Cloudflare API token](https://dash.cloudflare.com/profile/api-tokens) with Zero Trust permissions (for `terraform apply`)
+- [Cloudflare WARP](https://developers.cloudflare.com/warp-client/) client (for live posture checks)
 
 ### 1. Deploy Local Multi-Site Environment
 
@@ -91,7 +105,23 @@ terraform init
 terraform apply -auto-approve
 ```
 
-### 3. Run Device Posture Checks
+### 3. (Optional) Activate Cloudflare Tunnels
+
+Each site has a `cloudflared` sidecar that connects to Cloudflare Zero Trust.
+Activate by setting tunnel tokens:
+
+```bash
+# After terraform apply outputs tunnel IDs, create tokens:
+# Zero Trust > Networks > Tunnels > <tunnel> > Configure > Copy Token
+export CF_TUNNEL_TOKEN_SITEA="your-token-here"
+export CF_TUNNEL_TOKEN_SITEB="your-token-here"
+export CF_TUNNEL_TOKEN_HUB="your-token-here"
+
+# Restart with tunnels active
+docker compose up -d
+```
+
+### 4. Run Device Posture Checks
 
 ```bash
 # Cross-platform
@@ -104,14 +134,15 @@ powershell -ExecutionPolicy Bypass -File posture-checks/windows-posture.ps1
 bash posture-checks/linux-posture.sh
 ```
 
-### 4. Test Split-Tunneling
+### 5. Test WireGuard Site-to-Site Mesh
 
 ```bash
-# Apply split-tunnel WireGuard config
-wg-quick up split-tunneling/wireguard-split-tunnel.conf
+# Apply WireGuard config on the hub
+wg-quick up wireguard/sites/hub/wg0.conf
 
-# Verify only corp traffic goes through tunnel
-tcpdump -i wg-split -n
+# Verify inter-site connectivity
+ping 10.0.1.1  # Site-A from Hub
+ping 10.0.2.1  # Site-B from Hub
 ```
 
 ## Demo Scenarios
@@ -128,6 +159,20 @@ tcpdump -i wg-split -n
 - The posture checker does **not** store or transmit any sensitive data — results are printed to stdout
 - Terraform state files contain API tokens — add `terraform.tfstate` to `.gitignore` (already configured)
 - For production deployments, enable Cloudflare Gateway logs and set up alerting
+
+## Architecture Notes (Honest)
+
+This is a **learning lab**, not a production deployment. Here are the architectural decisions and their implications:
+
+| Design Choice | Why | Limitation |
+|---|---|---|
+| **Docker bridge for inter-site** | Simple, zero-config — containers ping each other immediately | WireGuard configs are valid but Docker does NOT route through them; actual WireGuard encryption requires real hosts |
+| **Two separate path** | Cloudflare = user access, WireGuard = site mesh — they serve different purposes | Adds complexity; production often picks one mesh fabric (Cloudflare or WireGuard), not both |
+| **`cloudflared` sidecars** | Demonstrates tunnel connectivity architecture | Requires real Cloudflare tunnel tokens to activate — silent no-op without them |
+| **Static posture integration name** | Avoids hardcoding a UUID | The posture integration must be created manually in Cloudflare dashboard first |
+| **Gateway policy ≠ split-tunnel** | Clarifies that split-tunneling is a WARP client setting | The `corporate_routing` policy only logs/inspects corp traffic; actual bypass is in WARP config |
+
+**What the Docker simulation proves:** The topology is valid, services deploy and talk to each other, posture checks work cross-platform, and all configuration is Infrastructure as Code. What it doesn't prove is the encrypted tunnel — that requires deploying the WireGuard configs on real hosts or a VM lab (e.g., AWS EC2, DigitalOcean).
 
 ## Project Walkthrough (for Interviews)
 
