@@ -4,23 +4,9 @@ A simulated **Secure Access Service Edge (SASE)** deployment combining **Cloudfl
 
 ## Architecture
 
-```
-                    ┌─────────────────────────────────────┐
-                    │        Cloudflare Zero Trust         │
-                    │  ┌─────────┐  ┌──────────────────┐  │
-                    │  │  Access  │  │    Gateway       │  │
-                    │  │ Policies │  │  (DNS/HTTP/AV)   │  │
-                    │  └────┬────┘  └────────┬─────────┘  │
-                    └───────┼────────────────┼─────────────┘
-                            │                │
-       ┌────────────────────┼────────────────┼────────────────────┐
-       │                    │                │                    │
-  ┌────▼─────┐        ┌────▼─────┐     ┌────▼─────┐        ┌────▼─────┐
-  │ Site-A   │◄──────►│   Hub    │◄────►│ Site-B   │        │ Remote   │
-  │ (Amman)  │WireGuard│(AWS EU) │WG   │ (Dubai)  │WARP    │ Users    │
-  │ 10.0.1.0/24│      │10.0.0.0/24│   │10.0.2.0/24│        │          │
-  └──────────┘        └──────────┘     └──────────┘        └──────────┘
-```
+![SASE Deployment Lab Architecture](architecture.png)
+
+*Diagram generated with [Diagrams](https://diagrams.mingrammer.com/) — code in [`scripts/generate-architecture-diagram.py`](scripts/generate-architecture-diagram.py)*
 
 ## Features
 
