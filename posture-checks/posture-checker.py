@@ -17,7 +17,7 @@ class PostureChecker:
     def __init__(self):
         self.results = {
             "device_id": self._get_device_id(),
-            "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.datetime.now(datetime.UTC).isoformat() + "Z",
             "os": platform.system(),
             "os_version": platform.version(),
             "hostname": platform.node(),
@@ -101,12 +101,16 @@ class PostureChecker:
         return self._check("OSPatches", True, "Patch check not implemented for this OS")
 
     def check_cloudflare_warp(self):
+        warp_cli = "warp-cli" if platform.system() != "Windows" else "warp-cli.exe"
         if platform.system() == "Windows":
-            r = subprocess.run(
-                ["warp-cli", "status"], capture_output=True, text=True, timeout=10
-            )
-            connected = "Connected" in r.stdout
-            return self._check("CloudflareWARP", connected, r.stdout.strip()[:200])
+            try:
+                r = subprocess.run(
+                    [warp_cli, "status"], capture_output=True, text=True, timeout=10
+                )
+                connected = "Connected" in r.stdout
+                return self._check("CloudflareWARP", connected, r.stdout.strip()[:200])
+            except FileNotFoundError:
+                return self._check("CloudflareWARP", False, "WARP CLI not found - install Cloudflare WARP client")
         return self._check("CloudflareWARP", False, "WARP CLI not available on this platform")
 
     def run_all(self):
