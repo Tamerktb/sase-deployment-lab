@@ -115,8 +115,6 @@ services:
     networks:
       sase_mesh:
         ipv4_address: 10.0.0.10
-    ports:
-      - "9090:80"
     labels:
       sase.site: "hub"
       sase.location: "AWS eu-central-1"
@@ -149,8 +147,6 @@ services:
     networks:
       sase_mesh:
         ipv4_address: 10.0.0.2
-    ports:
-      - "51821:51820/udp"
     volumes:
       - ./wireguard/sites/hub:/config:ro
 
@@ -160,8 +156,6 @@ services:
     container_name: sase-prometheus
     networks:
       sase_mesh: {}
-    ports:
-      - "9091:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
@@ -173,8 +167,6 @@ services:
     container_name: sase-grafana
     networks:
       sase_mesh: {}
-    ports:
-      - "3000:3000"
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
@@ -196,8 +188,6 @@ services:
     networks:
       sase_mesh:
         ipv4_address: 10.0.0.254
-    ports:
-      - "8000:8000"
     command: >
       sh -c "pip install prometheus_client -q && python /app/posture_checker.py --prometheus"
     volumes:
