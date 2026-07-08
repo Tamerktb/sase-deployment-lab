@@ -63,3 +63,23 @@ variable "gateway_proxy_ips" {
   type        = list(string)
   default     = []
 }
+
+variable "site_apps" {
+  description = <<-DESC
+    App hostname -> owning site + backend service.
+    Backends use Docker service names because cloudflared runs as a sidecar
+    container in this lab (localhost inside the sidecar is NOT the app).
+    On a real host where cloudflared runs beside the service, replace with
+    http://localhost:<port>.
+  DESC
+  type = map(object({
+    site    = string
+    service = string
+  }))
+  default = {
+    "wiki"    = { site = "site-a", service = "http://site-a-web:80" }
+    "jenkins" = { site = "site-b", service = "http://site-b-web:80" }
+    "admin"   = { site = "hub",    service = "http://grafana:3000" }
+    "monitor" = { site = "hub",    service = "http://hub-monitor:80" }
+  }
+}

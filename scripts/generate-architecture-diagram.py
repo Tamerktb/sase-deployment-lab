@@ -11,6 +11,7 @@ from diagrams.onprem.network import Nginx
 from diagrams.onprem.compute import Server
 from diagrams.onprem.container import Docker
 from diagrams.onprem.database import PostgreSQL
+from diagrams.onprem.monitoring import Prometheus, Grafana
 from diagrams.custom import Custom
 import os
 
@@ -93,8 +94,8 @@ with Diagram(
         hub_wg = Router("Hub\nAWS eu-central-1\n10.0.0.0/24")
         site_b_wg = Server("Site-B\nDubai, UAE\n10.0.2.0/24")
 
-        site_a_wg >> Edge(color="#1565C0", penwidth="3") >> hub_wg
-        hub_wg >> Edge(color="#1565C0", penwidth="3") >> site_b_wg
+        site_a_wg >> Edge(color="#1565C0", penwidth="3", dir="both") >> hub_wg
+        hub_wg >> Edge(color="#1565C0", penwidth="3", dir="both") >> site_b_wg
 
     # ── Site-A Services ────────────────────────────────────────────
     with Cluster(
@@ -144,11 +145,15 @@ with Diagram(
         },
     ):
         hub_monitor = Nginx("Monitoring\n(hub-monitor)")
+        prometheus = Prometheus("Prometheus")
+        grafana = Grafana("Grafana")
         hub_tunnel = Docker("cloudflared\n(hub-tunnel)")
+
+        prometheus >> Edge(color="#283593", penwidth="2") >> grafana
 
     # ── Posture & Compliance ───────────────────────────────────────
     with Cluster(
-        "Posture & Compliance",
+        "Posture & Compliance (lab demo — not wired to Cloudflare)",
         graph_attr={
             "style": "filled",
             "fillcolor": "#FBE9E7",
@@ -164,9 +169,9 @@ with Diagram(
 
     # ── Data Flows ─────────────────────────────────────────────────
     # PATH 1: Remote User → Cloudflare Zero Trust → cloudflared → Services
-    device_posture >> Edge(color="#BF360C", style="dashed", penwidth="2") >> posture_gw
-    posture_gw >> Edge(color="#BF360C", style="dashed", penwidth="2") >> posture_scripts
-    device_posture >> Edge(color="#F38020", penwidth="3") >> cf_access
+    device_posture >> Edge(color="#F38020", penwidth="3", label="WARP posture report") >> cf_access
+    posture_scripts >> Edge(color="#BF360C", style="dashed", penwidth="2") >> posture_gw
+    posture_gw >> Edge(color="#BF360C", style="dashed", penwidth="2", label="/metrics") >> prometheus
 
     cf_tunnel >> Edge(color="#F38020", penwidth="2", label="Tunnel #1") >> site_a_tunnel
     cf_tunnel >> Edge(color="#F38020", penwidth="2", label="Tunnel #2") >> site_b_tunnel
@@ -175,8 +180,9 @@ with Diagram(
     site_a_tunnel >> Edge(color="#E65100", penwidth="2") >> site_a_web
     site_a_tunnel >> Edge(color="#E65100", penwidth="2") >> site_a_api
     site_b_tunnel >> Edge(color="#6A1B9A", penwidth="2") >> site_b_web
-    site_b_tunnel >> Edge(color="#6A1B9A", penwidth="2") >> site_b_db
-    hub_tunnel >> Edge(color="#283593", penwidth="2") >> hub_monitor
+    site_b_web >> Edge(color="#6A1B9A", penwidth="2", label="internal") >> site_b_db
+    hub_tunnel >> Edge(color="#283593", penwidth="2", label="monitor.*") >> hub_monitor
+    hub_tunnel >> Edge(color="#283593", penwidth="2", label="admin.*") >> grafana
 
     # PATH 2: WireGuard Mesh (site-to-site, independent of Cloudflare)
     site_a_web >> Edge(color="#1565C0", style="dotted", penwidth="2", label="site-to-site") >> site_a_wg

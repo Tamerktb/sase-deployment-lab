@@ -21,7 +21,8 @@ output "posture_status" {
 
 output "gateway_policies" {
   value = [
-    cloudflare_zero_trust_gateway_policy.dns_filtering.name,
+    cloudflare_zero_trust_gateway_policy.dns_security_categories.name,
+    cloudflare_zero_trust_gateway_policy.dns_high_risk_tlds.name,
     cloudflare_zero_trust_gateway_policy.http_filtering.name,
     cloudflare_zero_trust_gateway_policy.corporate_routing.name,
   ]

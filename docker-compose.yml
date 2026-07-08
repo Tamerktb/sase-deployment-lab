@@ -20,8 +20,7 @@ x-services:
       - tunnel
       - --no-autoupdate
       - run
-    environment:
-      - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN_SITEA:-}
+    # Each *-tunnel service sets its own TUNNEL_TOKEN below
 
 services:
   # ── Site-A (Amman, Jordan) ──────────────────────────────────

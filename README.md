@@ -202,6 +202,7 @@ This is a **learning lab**, not a production deployment. Here are the architectu
 | **Docker bridge for inter-site** | Simple, zero-config — containers ping each other immediately | WireGuard configs are valid but Docker does NOT route through them; actual WireGuard encryption requires real hosts |
 | **Two separate path** | Cloudflare = user access, WireGuard = site mesh — they serve different purposes | Adds complexity; production often picks one mesh fabric (Cloudflare or WireGuard), not both |
 | **`cloudflared` sidecars** | Demonstrates tunnel connectivity architecture | Requires real Cloudflare tunnel tokens to activate — silent no-op without them |
+| **Tunnel backends use Docker service names** | cloudflared is its own container, so `localhost` inside it is NOT the app — ingress must target `http://site-a-web:80` etc. (`var.site_apps`) | On a real host where cloudflared runs beside the service, switch backends to `http://localhost:<port>` |
 | **Static posture integration name** | Avoids hardcoding a UUID | The posture integration must be created manually in Cloudflare dashboard first |
 | **Gateway policy ≠ split-tunnel** | Clarifies that split-tunneling is a WARP client setting | The `corporate_routing` policy only logs/inspects corp traffic; actual bypass is in WARP config |
 
