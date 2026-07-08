@@ -189,6 +189,7 @@ ping 10.0.2.1  # Site-B from Hub
 
 - Replace all placeholder WireGuard keys (`SITE_A_PUBLIC_KEY`, `HUB_PRIVATE_KEY`, etc.) with actual generated keys before production use
 - The posture checker does **not** store or transmit any sensitive data — results are printed to stdout
+- **Posture check integration note**: The `posture_checker.py` script is a standalone compliance demonstration — it runs locally and prints results. It does **not** feed into Cloudflare's device posture API. To enforce posture in Cloudflare Access, use the WARP client's built-in device posture reporting or create the integration ID manually in the Cloudflare dashboard
 - Terraform state files contain API tokens — add `terraform.tfstate` to `.gitignore` (already configured)
 - For production deployments, enable Cloudflare Gateway logs and set up alerting
 
