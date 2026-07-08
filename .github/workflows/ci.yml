@@ -55,7 +55,13 @@ jobs:
         run: docker compose build
 
       - name: Start services
-        run: docker compose up -d
+        run: |
+          docker compose up -d \
+            site-a-web site-a-api \
+            site-b-web site-b-db \
+            hub-monitor wireguard-hub \
+            prometheus grafana \
+            posture-gateway
 
       - name: Verify containers
         run: |
