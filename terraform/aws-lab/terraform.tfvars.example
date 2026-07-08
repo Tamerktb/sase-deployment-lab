@@ -1,0 +1,14 @@
+# Copy to terraform.tfvars and fill in your values:
+#
+# aws_region  = "eu-central-1"
+# ssh_key_name = "your-ec2-key-pair-name"
+#
+# Optional: Cloudflare tunnel tokens (one per site)
+# cloudflare_tunnel_tokens = {
+#   hub    = ""
+#   site_a = ""
+#   site_b = ""
+# }
+#
+# Optional: restrict SSH to your IP
+# allowed_ssh_cidrs = ["203.0.113.1/32"]

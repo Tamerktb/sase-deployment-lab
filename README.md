@@ -176,6 +176,33 @@ ping 10.0.1.1  # Site-A from Hub
 ping 10.0.2.1  # Site-B from Hub
 ```
 
+### 8. (Optional) Deploy on AWS — Real Encrypted Mesh
+
+The Docker simulation proves the topology and configs, but Docker does **not** route through WireGuard. For actual encrypted traffic, deploy the same topology on real EC2 instances:
+
+```bash
+# 1. Configure AWS credentials
+cp terraform/aws-lab/terraform.tfvars.example terraform/aws-lab/terraform.tfvars
+# Edit terraform.tfvars with your AWS region and EC2 key pair name
+
+# 2. Deploy 3 t3.micro instances (~$0.03/hr total)
+make aws-lab
+
+# 3. Review the plan (15 AWS resources), then apply
+make aws-lab-apply
+
+# 4. Deploy WireGuard configs and activate the encrypted mesh
+make aws-lab-setup
+
+# 5. Verify real encrypted traffic
+ssh -i ~/.ssh/your-key.pem ubuntu@<hub-ip> "ping 10.0.1.1"
+
+# 6. Tear down when done (removes all 15 resources)
+make aws-lab-teardown
+```
+
+This provisions 3 Ubuntu EC2 instances (hub, site-a, site-b) with WireGuard installed. The setup script generates fresh keys, exchanges them via SSH, and activates the hub-and-spoke mesh with real public IP endpoints. The config creates 15 resources in total — the same Terraform plan → apply → destroy discipline as the VMware SASE demo.
+
 ## Demo Scenarios
 
 | Scenario | Description | Time |
@@ -206,7 +233,7 @@ This is a **learning lab**, not a production deployment. Here are the architectu
 | **Static posture integration name** | Avoids hardcoding a UUID | The posture integration must be created manually in Cloudflare dashboard first |
 | **Gateway policy ≠ split-tunnel** | Clarifies that split-tunneling is a WARP client setting | The `corporate_routing` policy only logs/inspects corp traffic; actual bypass is in WARP config |
 
-**What the Docker simulation proves:** The topology is valid, services deploy and talk to each other, posture checks work cross-platform, and all configuration is Infrastructure as Code. What it doesn't prove is the encrypted tunnel — that requires deploying the WireGuard configs on real hosts or a VM lab (e.g., AWS EC2, DigitalOcean).
+**What the Docker simulation proves:** The topology is valid, services deploy and talk to each other, posture checks work cross-platform, and all configuration is Infrastructure as Code. What it doesn't prove is the encrypted tunnel — that's what the optional AWS deployment (`make aws-lab`) is for: it spins up real EC2 instances, runs the same WireGuard configs on real public IPs, and verifies encrypted traffic flows between sites.
 
 ## Project Walkthrough (for Interviews)
 
